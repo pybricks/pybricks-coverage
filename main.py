@@ -5,14 +5,17 @@ from mailbox.messaging import BluetoothMailboxClient, TextMailbox
 SERVER = '24:71:89:4A:02:E2'
 
 client = BluetoothMailboxClient()
-mbox = TextMailbox('greeting', client)
+mbox = TextMailbox('command', client)
 
 print('establishing connection...')
 client.connect(SERVER)
 print('connected!')
 
-# In this program, the client sends the first message and then waits for the
-# server to reply.
-mbox.send('hello!')
-mbox.wait()
-print(mbox.read())
+for command in ('activate_dfu', 'remove_usb', 'shutdown', 'stop'):
+    # Send command
+    mbox.send(command)
+
+    # Wait until they are done
+    mbox.wait()
+
+mbox.send('stop')

@@ -85,4 +85,4 @@ while True:
         break
 
     # Say we are done with this command
-    mbox.send('Done!')
+    mbox.send(command)

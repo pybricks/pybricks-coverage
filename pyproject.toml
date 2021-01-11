@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pybricks-coverage"
+version = "0.1.0"
+description = "Automated tests on real hardware to run prior to every release."
+authors = ["The Pybricks Authors <dev@pybricks.com>"]
+maintainers = ["Laurens Valk <laurens@pybricks.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://pybricks.com"
+repository = "https://github.com/pybricks/pybricks-coverage"
+documentation = "https://docs.pybricks.com"
+
+[tool.poetry.dependencies]
+python = "~3.8"
+pybricksdev = { git = "https://github.com/pybricks/pybricksdev.git", branch = "master" }
+pybricks = { git = "https://github.com/pybricks/pybricks-api.git", branch = "master" }
+toml = "^0.10.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

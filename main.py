@@ -43,7 +43,7 @@ async def main(mailbox):
 
     # TODO: Some of these scripts require interaction. Need to program
     # the buttons that way, or print that from hub in test scripts.
-    SCRIPT_DIR = '../pybricks-api/examples/pup/hub_primehub'
+    SCRIPT_DIR = './scripts'
     
     for file_name in listdir(SCRIPT_DIR):
         print("Now running:", file_name)

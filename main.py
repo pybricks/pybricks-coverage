@@ -8,7 +8,7 @@ from pybricksdev.flash import create_firmware
 from pybricksdev.connections import BLEPUPConnection
 from pybricksdev.ble import find_device
 
-from os import listdir, path
+from os import listdir, path, walk
 
 async def execute_command(mailbox, command, wait=True):
     """Sends command to EV3 and awaits execution"""
@@ -49,11 +49,14 @@ async def main(mailbox, dfu=False):
 
     # TODO: Some of these scripts require interaction. Need to program
     # the buttons that way, or print that from hub in test scripts.
-    SCRIPT_DIR = './scripts'
     
-    for file_name in listdir(SCRIPT_DIR):
+    scripts = []
+    for (dirpath, dirnames, filenames) in walk('./scripts'):
+        scripts += [path.join(dirpath, name) for name in filenames if '.py' == name[-3:]]
+
+    for file_name in scripts:
         print("Now running:", file_name)
-        await hub.run(path.join(SCRIPT_DIR, file_name))
+        await hub.run(file_name)
     await hub.disconnect()
 
     await execute_command(mailbox, 'shutdown')

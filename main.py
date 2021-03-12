@@ -7,6 +7,7 @@ from pybricksdev.dfu import flash_dfu
 from pybricksdev.flash import create_firmware
 from pybricksdev.connections import BLEPUPConnection
 from pybricksdev.ble import find_device
+
 from os import listdir, path
 
 async def execute_command(mailbox, command, wait=True):
@@ -25,16 +26,21 @@ async def execute_command(mailbox, command, wait=True):
         await sleep(0.1)
 
 # Main
-async def main(mailbox):
+async def main(mailbox, dfu=False):
     """Main program"""
 
-    # Trigger DFU mode
-    await execute_command(mailbox, 'activate_dfu')
+    if dfu:
+        # Trigger DFU mode
+        await execute_command(mailbox, 'activate_dfu')
 
-    # Run DFU (blocking)
-    firmware, metadata = await create_firmware('../pybricks-micropython/bricks/primehub/build/firmware.zip')
-    flash_dfu(firmware, metadata)
-    await execute_command(mailbox, 'remove_usb')
+        # Run DFU (blocking)
+        firmware, metadata = await create_firmware('../pybricks-micropython/bricks/primehub/build/firmware.zip')
+        flash_dfu(firmware, metadata)
+        await execute_command(mailbox, 'remove_usb')
+    else:
+        # Otherwise, just turn on the hub with the button
+        await execute_command(mailbox, 'power_on')
+
 
     # Connect to the hub that just booted up
     hub = BLEPUPConnection()
@@ -53,10 +59,7 @@ async def main(mailbox):
     await execute_command(mailbox, 'shutdown')
 
     # Tell EV3 to stop
-    await execute_command(mailbox, 'stop', wait=False)
-
-    # Tell EV3 to stop
-    mbox.send('stop')
+    await execute_command(mailbox, 'stop')
 
 # Connect to the EV3
 client = BluetoothMailboxClient()

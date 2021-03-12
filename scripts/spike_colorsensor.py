@@ -15,13 +15,13 @@ First phase:
 
 
 from pybricks import version
-from pybricks.hubs import TechnicHub
+from pybricks.hubs import PrimeHub
 from pybricks.parameters import Color, Port
 from pybricks.pupdevices import ColorSensor
 from pybricks.tools import wait
 
 # instantiate the devices
-hub = TechnicHub()
+hub = PrimeHub()
 sensor = ColorSensor(Port.B)
 
 # show version and battery level as reference
@@ -183,11 +183,11 @@ You measure your own colors with the hsv() method.
 
 # correct Color values
 
-green = Color(h=132, s=94, v=26, name='GREEN_BRICK')
-magenta = Color(h=348, s=96, v=40, name='MAGENTA_BRICK')
-brown = Color(h=17, s=78, v=15, name='BROWN_BRICK')
-red = Color(h=359, s=97, v=39, name='RED_BRICK')
-my_colors = (green, magenta, brown, red, None)
+green = Color(h=132, s=94, v=26)
+magenta = Color(h=348, s=96, v=40)
+brown = Color(h=17, s=78, v=15)
+red = Color(h=359, s=97, v=39)
+my_colors = (green, magenta, brown, red, Color.NONE)
 sensor.detectable_colors(my_colors)
 
 
@@ -196,7 +196,7 @@ sensor.detectable_colors(my_colors)
 w1_max = Color(h=359, s=100, v=100)
 w2_max = Color(h=1000, s=1000, v=1100)
 w3Err = Color(h=36, s=-1, v=25)
-error_colors = (w1_max, w2_max, w3Err, None)
+error_colors = (w1_max, w2_max, w3Err, Color.NONE)
 sensor.detectable_colors(error_colors)
 
 

@@ -2,7 +2,7 @@
 
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor
-from pybricks.parameters import Port, Stop
+from pybricks.parameters import Port, Stop, Button
 from pybricks.tools import wait
 from pybricks.messaging import BluetoothMailboxServer, TextMailbox
 
@@ -11,55 +11,140 @@ SPEED = 100
 class SpikeManager:
 
     def __init__(self):
-        # Initialize all devices
+        # Initialize devices.
         self.ev3 = EV3Brick()
         self.usb_motor = Motor(Port.D)
-        self.bt_motor = Motor(Port.C)
-        self.left_button_motor = Motor(Port.B)
-        self.right_button_motor = Motor(Port.A)
+        self.left_motor = Motor(Port.B)
+        self.right_motor = Motor(Port.A)
 
-        # Reset all motor to mechanical stop
-        self.usb_motor.run_until_stalled(-SPEED, duty_limit=50)
-        self.bt_motor.run_until_stalled(-SPEED, duty_limit=20)
-        self.left_button_motor.run_until_stalled(-SPEED, duty_limit=100)
-        self.right_button_motor.run_until_stalled(SPEED, duty_limit=30)
-        wait(500)
+        # Relax target tolerances so the motion is considered complete even
+        # if off by a few more degrees than usual. This way, it won't block.
+        # But set speed tolerance strict, so we move at least until fully
+        # stopped, which is when we are pressing the button.
+        self.left_motor.control.target_tolerances(speed=0, position=30)
+        self.right_motor.control.target_tolerances(speed=0, position=30)
 
-        # Reset the angles
-        self.usb_motor.reset_angle(10)
-        self.bt_motor.reset_angle(-20)
-        self.left_button_motor.reset_angle(-25)
-        self.right_button_motor.reset_angle(20)
+        # Run all motors to end points.
+        self.targets = {
+            'usb_in': self.usb_motor.run_until_stalled(-SPEED, duty_limit=50),
+            'usb_out': self.usb_motor.run_until_stalled(SPEED, duty_limit=50),
+            'center_pressed': self.left_motor.run_until_stalled(-SPEED, duty_limit=50) + 10,
+            'left_pressed': self.left_motor.run_until_stalled(SPEED, duty_limit=50),
+            'right_pressed': self.right_motor.run_until_stalled(SPEED, duty_limit=50) + 10,
+            'bluetooth_pressed': self.right_motor.run_until_stalled(-SPEED, duty_limit=50) - 10,
+        }
 
-        # Go to neutral position
-        self.reset()
+        # Set other targets between end points.
+        self.targets['left_released'] = (self.targets['left_pressed'] + self.targets['center_pressed']) / 2
+        self.targets['center_released'] = self.targets['left_released']
 
-    def reset(self):
-        self.usb_motor.run_target(SPEED, 0)
-        self.bt_motor.run_target(SPEED, 0)
-        self.left_button_motor.run_target(SPEED, 0)
-        self.right_button_motor.run_target(SPEED, 0)
+        self.targets['right_released'] = (self.targets['right_pressed'] + self.targets['bluetooth_pressed']) / 2
+        self.targets['bluetooth_released'] = self.targets['right_released']
 
-    def insert_usb(self):
-        self.usb_motor.run_target(SPEED, 70, then=Stop.COAST)
+        # Get in initial state.
+        self.press_center(False)
+        self.press_bluetooth(False)
+        self.insert_usb(False)
 
-    def remove_usb(self):
-        self.usb_motor.run_target(SPEED, 0, then=Stop.COAST)
+        # Turn the hub off.
+        self.shutdown()
+        self.speaker.beep()
+
+
+    def insert_usb(self, insert):
+        key = 'usb_in' if insert else 'usb_out'
+        self.usb_motor.run_target(SPEED, self.targets[key])
+
+    def press_left(self, press):
+        if press:
+            self.left_motor.run_target(SPEED, self.targets['left_pressed'])
+            self.left_motor.dc(80)
+        else:
+            while abs(self.left_motor.speed()) > 100:
+                wait(10)
+            self.left_motor.run_target(SPEED, self.targets['left_released'], Stop.COAST)
+
+    def press_center(self, press):
+        if press:
+            self.left_motor.run_target(SPEED, self.targets['center_pressed'])
+        else:
+            self.left_motor.run_target(SPEED, self.targets['center_released'], Stop.COAST)
+
+    def press_right(self, press):
+        if press:
+            self.right_motor.run_target(SPEED, self.targets['right_pressed'])
+        else:
+            self.right_motor.run_target(SPEED, self.targets['right_released'], Stop.COAST)
+        
+    def press_bluetooth(self, press):
+        if press:
+            self.right_motor.run_target(SPEED, self.targets['bluetooth_pressed'])
+            self.right_motor.dc(-100)
+        else:
+            while abs(self.right_motor.speed()) > 100:
+                wait(10)
+            self.right_motor.run_target(SPEED, self.targets['bluetooth_released'], Stop.COAST)
+
+    def click_center(self, duration=100):
+        self.press_center(False)
+        self.press_center(True)
+        wait(duration)
+        self.press_center(False)
+
+    def click_bluetooth(self, duration=200):
+        self.press_bluetooth(False)
+        self.press_bluetooth(True)
+        wait(duration)
+        self.press_bluetooth(False)
+
+    def click_left(self, duration=100):
+        self.press_left(False)
+        self.press_left(True)
+        wait(duration)
+        self.press_left(False)
+
+    def click_right(self, duration=100):
+        self.press_right(False)
+        self.press_right(True)
+        wait(duration)
+        self.press_right(False)
 
     def activate_dfu(self):
-        self.bt_motor.dc(-40)
+        self.press_bluetooth(True)
         wait(600)
-        self.insert_usb()
+        self.insert_usb(True)
         wait(8000)
-        self.bt_motor.run_target(SPEED, 0)
+        self.press_bluetooth(False)
 
     def shutdown(self):
-        self.left_button_motor.run_target(SPEED, 20)
-        wait(4000)
-        self.left_button_motor.run_target(SPEED, 0)
+        self.click_center(duration=4000)
+
+    def test_buttons(self):
+        while True:
+            while True:
+                pressed = self.ev3.buttons.pressed()
+                if any(pressed):
+                    break
+
+            if Button.CENTER in pressed:
+                self.click_center()
+            elif Button.UP in pressed:
+                self.click_bluetooth()
+            elif Button.LEFT in pressed:
+                self.click_left()
+            elif Button.RIGHT in pressed:
+                self.click_right()
+            elif Button.DOWN in pressed:
+                break
+
+            while any(self.ev3.buttons.pressed()):
+                wait(10)
+
 
 # Initialize mechanisms
 spike_manager = SpikeManager()
+# spike_manager.test_buttons()
+spike_manager.ev3.speaker.beep()
 
 # Wait for incoming bluetooth connection
 server = BluetoothMailboxServer()
@@ -78,7 +163,7 @@ while True:
     if command == 'activate_dfu':
         spike_manager.activate_dfu()
     elif command == 'remove_usb':
-        spike_manager.remove_usb()
+        spike_manager.insert_usb(False)
     elif command == 'shutdown':
         spike_manager.shutdown()
     elif command == 'stop':

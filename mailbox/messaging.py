@@ -256,6 +256,7 @@ class BluetoothMailboxServer(MailboxHandlerMixIn, ThreadingRFCOMMServer):
         super().__init__()
         super(ThreadingRFCOMMServer, self).__init__(
             (BDADDR_ANY, EV3_RFCOMM_CHANNEL), MailboxHandler)
+        self.daemon_threads = True
 
     def wait_for_connection(self, count=1):
         """Waits for a :class:`BluetoothMailboxClient` on a remote device to
@@ -277,6 +278,7 @@ class MailboxRFCOMMClient(ThreadingRFCOMMClient):
     def __init__(self, parent, bdaddr):
         self.parent = parent
         super().__init__((bdaddr, EV3_RFCOMM_CHANNEL), MailboxHandler)
+        self.daemon_threads = True
 
     def send(self, data):
         self.socket.send(data)
@@ -336,5 +338,5 @@ class BluetoothMailboxClient(MailboxHandlerMixIn):
     def close(self):
         """Closes the connections."""
         for client in self._clients.values():
-            client.client_close()
+            client.close()
         self._clients.clear()
